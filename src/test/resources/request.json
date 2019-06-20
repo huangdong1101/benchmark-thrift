@@ -1,0 +1,12 @@
+{
+  "service": "SharedService",
+  "method": "getStruct",
+  "arguments": [
+    1,
+    "zhangsan-token",
+    {
+      "key": 1,
+      "value": "lisi"
+    }
+  ]
+}
