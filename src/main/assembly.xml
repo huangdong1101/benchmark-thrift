@@ -12,15 +12,11 @@
     <fileSets>
         <fileSet>
             <directory>${project.build.directory}/classes</directory>
-            <outputDirectory>classes</outputDirectory>
+            <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>src/main/scripts</directory>
             <outputDirectory>bin</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>src/main/conf</directory>
-            <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>src/main/env</directory>

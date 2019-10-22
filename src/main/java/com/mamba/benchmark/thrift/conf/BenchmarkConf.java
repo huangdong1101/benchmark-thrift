@@ -47,7 +47,7 @@ public class BenchmarkConf {
         }
 
         String thriftConfStr = str.substring(0, pe);
-        URL thriftConfURL = Thread.currentThread().getContextClassLoader().getResource(MessageFormat.format("conf/{0}.cfg", thriftConfStr));
+        URL thriftConfURL = Thread.currentThread().getContextClassLoader().getResource(MessageFormat.format("{0}.cfg", thriftConfStr));
         if (thriftConfURL == null) {
             throw new IllegalArgumentException("Invalid URL: " + str);
         }

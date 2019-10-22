@@ -42,6 +42,7 @@ public class Main {
             LOGGER.info("PressureExecutor will stop in 10 second!");
             TimeUnit.SECONDS.sleep(10);
         }
+        LOGGER.info("Thrift Benchmark Completed!");
     }
 
     private PressureExecutor<Runnable> getExecutor() {

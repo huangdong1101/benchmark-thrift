@@ -10,7 +10,7 @@ fi
 
 echo "application is starting..."
 BASE_DIR=$(cd $(dirname $0)/..; pwd)
-CLASSPATH=$BASE_DIR/conf:$BASE_DIR/lib/*
+CLASSPATH=$BASE_DIR/conf:$BASE_DIR/lib/*:$BASE_DIR/env/0.11.0/*
 echo "CLASSPATH => $CLASSPATH"
 
 BIN_DIR=$(cd $(dirname $0); pwd)
@@ -25,7 +25,7 @@ echo "JAVA_ARGS => $*"
 PID_FILE="$BIN_DIR/pid"
 if [ ! -s "$PID_FILE" ] || [ -z "$(ps -eo pid | grep -w $(cat $PID_FILE))" ]; then
     java $JAVA_OPTS -cp $CLASSPATH com.mamba.benchmark.thrift.Main $*> $BIN_DIR/std.log 2>&1 &
-#    echo $! > $PID_FILE
+    echo $! > $PID_FILE
     echo "process has been started, pid=$(cat $PID_FILE)"
 else
     echo "application can not start duplicate! running pid=$(cat $PID_FILE)"

@@ -37,7 +37,7 @@
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
             <version>${thrift.version}</version>
-            <!--<scope>provided,test</scope>-->
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -177,8 +177,8 @@
                 <directory>src/main/resources</directory>
                 <includes>
                     <include>log4j2.xml</include>
+                    <include>*.cfg</include>
                 </includes>
-                <filtering>true</filtering>
             </resource>
         </resources>
     </build>
