@@ -5,12 +5,11 @@ import com.mamba.benchmark.thrift.sample.face.SharedStructIn;
 import com.mamba.benchmark.thrift.sample.face.SharedStructOut;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessorFactory;
-import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TFramedTransport;
 import org.apache.thrift.transport.TNonblockingServerSocket;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,6 +22,7 @@ public class SharedServiceImpl implements SharedService.Iface {
 
     @Override
     public List<SharedStructOut> getStruct(int key, String token, SharedStructIn input) throws TException {
+        System.out.println("Test ===> getStruct");
         try {
             Thread.sleep(50);
         } catch (InterruptedException e) {
@@ -33,6 +33,14 @@ public class SharedServiceImpl implements SharedService.Iface {
         return Collections.singletonList(out);
     }
 
+    @Override
+    public void getStruct1(int key, String token, SharedStructIn input) throws TException {
+        System.out.println("Test ===> getStruct1");
+        try {
+            Thread.sleep(50);
+        } catch (InterruptedException e) {
+        }
+    }
 
     public static void main(String[] args) throws Exception {
         int port = 9001;
@@ -44,7 +52,7 @@ public class SharedServiceImpl implements SharedService.Iface {
             SharedServiceImpl service = new SharedServiceImpl();
             SharedService.Processor processor = new SharedService.Processor(service);
             TNonblockingServer.Args arg = new TNonblockingServer.Args(socket);
-            arg.protocolFactory(new TCompactProtocol.Factory());
+            arg.protocolFactory(new TBinaryProtocol.Factory());
             arg.transportFactory(new TFramedTransport.Factory());
             arg.processorFactory(new TProcessorFactory(processor));
             TServer server = new TNonblockingServer(arg);
