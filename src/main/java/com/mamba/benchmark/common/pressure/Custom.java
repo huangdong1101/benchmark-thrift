@@ -1,8 +1,5 @@
 package com.mamba.benchmark.common.pressure;
 
-import java.util.Arrays;
-import java.util.Objects;
-
 public class Custom extends Pressure {
 
     private final int[] quantities;
@@ -36,29 +33,5 @@ public class Custom extends Pressure {
             return -1;
         }
         return this.quantities[idx];
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof Custom)) return false;
-        Custom custom = (Custom) o;
-        return durationPerStep == custom.durationPerStep &&
-                Arrays.equals(quantities, custom.quantities);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(durationPerStep);
-        result = 31 * result + Arrays.hashCode(quantities);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "Custom{" +
-                "quantities=" + Arrays.toString(quantities) +
-                ", durationPerStep=" + durationPerStep +
-                '}';
     }
 }

@@ -12,11 +12,23 @@
     <fileSets>
         <fileSet>
             <directory>${project.build.directory}/classes</directory>
-            <outputDirectory>conf</outputDirectory>
+            <outputDirectory>classes</outputDirectory>
         </fileSet>
         <fileSet>
             <directory>src/main/scripts</directory>
             <outputDirectory>bin</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/conf</directory>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/env</directory>
+            <outputDirectory>env</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/tools</directory>
+            <outputDirectory>tools</outputDirectory>
         </fileSet>
     </fileSets>
     <dependencySets>

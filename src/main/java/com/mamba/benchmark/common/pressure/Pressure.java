@@ -1,10 +1,12 @@
 package com.mamba.benchmark.common.pressure;
 
-import com.alibaba.fastjson.JSONObject;
+import com.google.common.base.Splitter;
+
+import java.util.stream.StreamSupport;
 
 public abstract class Pressure {
 
-    private volatile long beginTime = 0;
+    private transient volatile long beginTime = 0;
 
     private long getBeginTime() {
         if (this.beginTime == 0) {
@@ -25,53 +27,28 @@ public abstract class Pressure {
 
     protected abstract int getQuantity(int offset);
 
-    public static Pressure parse(String type, String config) {
-        switch (type) {
-            case "fixed":
-                return parseFixed(config);
-            case "gradient":
-                return parseGradient(config);
-            case "custom":
-                return parseCustom(config);
-            default:
-                throw new IllegalArgumentException("Invalid type: " + type);
+    public static Pressure parse(String str, int duration) {
+        if (str.indexOf(',') >= 0) {
+            int[] quantities = StreamSupport.stream(Splitter.on(',').split(str).spliterator(), false)
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .mapToInt(Integer::parseInt)
+                    .toArray();
+            // -c 10,20,30
+            return new Custom(quantities, duration);
         }
-    }
-
-    private static Fixed parseFixed(String config) {
-        JSONObject json = JSONObject.parseObject(config);
-        Integer quantity = json.getInteger("quantity");
-        Integer duration = json.getInteger("duration");
-        if (quantity == null || duration == null) {
-            throw new IllegalArgumentException("Invalid config: " + config);
+        int aIdx = str.indexOf('+');
+        if (aIdx < 1) {
+            return new Fixed(Integer.parseInt(str.trim()), duration);
         }
-        Integer rampup = json.getInteger("rampup");
-        if (rampup == null) {
-            return new Fixed(quantity, duration);
-        } else {
-            return new Fixed(quantity, duration, rampup);
+        int pIdx = str.indexOf('*', aIdx);
+        if (pIdx > 0) {
+            return new Gradient(
+                    Integer.parseInt(str.substring(0, aIdx).trim()),
+                    Integer.parseInt(str.substring(aIdx + 1, pIdx).trim()),
+                    Integer.parseInt(str.substring(pIdx + 1).trim()),
+                    duration);
         }
-    }
-
-    private static Gradient parseGradient(String config) {
-        JSONObject json = JSONObject.parseObject(config);
-        Integer initialQuantity = json.getInteger("initialQuantity");
-        Integer finalQuantity = json.getInteger("finalQuantity");
-        Integer incrementPerStep = json.getInteger("incrementPerStep");
-        Integer durationPerStep = json.getInteger("durationPerStep");
-        if (initialQuantity == null || finalQuantity == null || incrementPerStep == null || durationPerStep == null) {
-            throw new IllegalArgumentException("Invalid config: " + config);
-        }
-        return new Gradient(initialQuantity, finalQuantity, incrementPerStep, durationPerStep);
-    }
-
-    private static Custom parseCustom(String config) {
-        JSONObject json = JSONObject.parseObject(config);
-        int[] quantities = json.getObject("quantities", int[].class);
-        Integer durationPerStep = json.getInteger("durationPerStep");
-        if (quantities == null || durationPerStep == null) {
-            throw new IllegalArgumentException("Invalid config: " + config);
-        }
-        return new Custom(quantities, durationPerStep);
+        throw new IllegalArgumentException("Invalid pressure: " + str);
     }
 }

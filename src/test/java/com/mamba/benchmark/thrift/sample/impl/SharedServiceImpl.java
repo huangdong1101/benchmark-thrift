@@ -37,31 +37,23 @@ public class SharedServiceImpl implements SharedService.Iface {
     public static void main(String[] args) throws Exception {
         int port = 9001;
 
-        TNonblockingServerSocket socket;
-        try {
-            socket = new TNonblockingServerSocket(port);
-        } catch (TTransportException e) {
-            LOGGER.error("Failed to init server socket(port={}): {}", port, e.getMessage(), e);
-            System.exit(1);
-            return;
+        try (TNonblockingServerSocket socket = new TNonblockingServerSocket(port)) {
+            LOGGER.info("=========Thrift server starting=======");
+            LOGGER.info("Listen port: {}", port);
+
+            SharedServiceImpl service = new SharedServiceImpl();
+            SharedService.Processor processor = new SharedService.Processor(service);
+            TNonblockingServer.Args arg = new TNonblockingServer.Args(socket);
+            arg.protocolFactory(new TCompactProtocol.Factory());
+            arg.transportFactory(new TFramedTransport.Factory());
+            arg.processorFactory(new TProcessorFactory(processor));
+            TServer server = new TNonblockingServer(arg);
+
+            LOGGER.info("=========Thrift server started=======");
+            server.serve();
+            LOGGER.error("Thrift server stopped as an error happened");
+            server.stop();
         }
-
-        LOGGER.info("=========Thrift server starting=======");
-        LOGGER.info("Listen port: {}", port);
-
-        SharedServiceImpl service = new SharedServiceImpl();
-        SharedService.Processor processor = new SharedService.Processor(service);
-        TNonblockingServer.Args arg = new TNonblockingServer.Args(socket);
-        arg.protocolFactory(new TCompactProtocol.Factory());
-        arg.transportFactory(new TFramedTransport.Factory());
-        arg.processorFactory(new TProcessorFactory(processor));
-        TServer server = new TNonblockingServer(arg);
-        arg.processorFactory(new TProcessorFactory(processor));
-
-        LOGGER.info("=========Thrift server started=======");
-        server.serve();
-        LOGGER.error("Thrift server stopped as an error happened");
-        server.stop();
         System.exit(1);
     }
 }

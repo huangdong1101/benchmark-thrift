@@ -1,33 +1,17 @@
 package com.mamba.benchmark.thrift;
 
-import com.alibaba.fastjson.JSONObject;
+import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.google.common.base.Charsets;
-import com.google.common.io.Files;
 import com.mamba.benchmark.common.executor.PressureExecutor;
-import com.mamba.benchmark.common.pressure.Custom;
-import com.mamba.benchmark.common.pressure.Fixed;
-import com.mamba.benchmark.common.pressure.Gradient;
 import com.mamba.benchmark.common.pressure.Pressure;
-import com.mamba.benchmark.common.util.BenchmarkUtils;
-import com.mamba.benchmark.thrift.client.DefaultClientFactory;
-import com.mamba.benchmark.thrift.client.TClientFactory;
-import com.mamba.benchmark.thrift.client.TTransportFactory;
-import com.mamba.benchmark.thrift.define.Request;
+import com.mamba.benchmark.thrift.conf.BenchmarkConf;
 import com.mamba.benchmark.thrift.generator.InvariantTaskGenerator;
-import com.mamba.benchmark.thrift.tools.Tools;
-import org.apache.thrift.TServiceClient;
-import org.apache.thrift.TServiceClientFactory;
-import org.apache.thrift.protocol.TBinaryProtocol;
-import org.apache.thrift.protocol.TCompactProtocol;
-import org.apache.thrift.protocol.TProtocolFactory;
+import com.mamba.benchmark.thrift.invocation.ServiceClientInvocation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.net.URL;
-import java.net.URLClassLoader;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
@@ -36,44 +20,20 @@ public class Main {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Main.class);
 
-    @Parameter(names = {"-idl"}, description = "IDL path", required = true)
-    private File idl;
-
-    @Parameter(names = {"-addr", "-address"}, description = "Server address", required = true)
-    private String address;
-
-    @Parameter(names = {"-req", "-request"}, description = "Request config path", required = true)
-    private File request;
-
-    @Parameter(names = {"-t"}, description = "throughput")
-    private boolean throughput;
-
     @Parameter(names = {"-c"}, description = "concurrency")
-    private boolean concurrency;
+    private String concurrency;
 
-    @Parameter(names = {"-quantity"})
-    private Integer quantity;
+    @Parameter(names = {"-q"}, description = "throughput")
+    private String throughput;
 
-    @Parameter(names = {"-duration"})
-    private Integer duration;
+    @Parameter(names = {"-t"}, description = "timelimit", required = true)
+    private int timelimit;
 
-    @Parameter(names = {"-rampup", "-ramp-up"})
-    private Integer rampup;
+    @Parameter(names = {"-k"}, description = "keepAlive")
+    private boolean keepAlive;
 
-    @Parameter(names = {"-initialQuantity", "-initial-quantity"})
-    private Integer initialQuantity;
-
-    @Parameter(names = {"-finalQuantity", "-final-quantity"})
-    private Integer finalQuantity;
-
-    @Parameter(names = {"-incrementPerStep", "-increment-per-step"})
-    private Integer incrementPerStep;
-
-    @Parameter(names = {"-durationPerStep", "-duration-per-step"})
-    private Integer durationPerStep;
-
-    @Parameter(names = {"-quantities"})
-    private List<String> quantities;
+    @Parameter(description = "conf", required = true, converter = URLConverter.class)
+    private BenchmarkConf conf;
 
     private void run() throws Exception {
         try (PressureExecutor executor = this.getExecutor()) {
@@ -84,55 +44,51 @@ public class Main {
         }
     }
 
-    private PressureExecutor<Runnable> getExecutor() throws Exception {
-        if (this.concurrency == this.throughput) {
-            throw new IllegalArgumentException("Invalid argument: concurrency=" + this.concurrency + ", throughput=" + throughput);
+    private PressureExecutor<Runnable> getExecutor() {
+        if (this.timelimit < 10) {
+            throw new IllegalArgumentException("Invalid argument: timelimit=" + this.timelimit);
         }
-        boolean concurrency = this.concurrency;
-        Pressure pressure = this.getPressure();
-        IntFunction<List<Runnable>> generator = this.getGenerator();
-        if (concurrency) {
-            return PressureExecutor.concurrency(generator, pressure::currentQuantity);
-        } else {
-            return PressureExecutor.throughput(generator, pressure::currentQuantity);
-        }
-    }
-
-    private IntFunction<List<Runnable>> getGenerator() throws Exception {
-        JSONObject interfaceDescription = Tools.parseIDL(this.idl);
-        URLClassLoader classLoader = URLClassLoader.newInstance(new URL[]{this.idl.toURI().toURL()}, ClassLoader.getSystemClassLoader());
-        String requestStr = Files.asCharSource(this.request, Charsets.UTF_8).read();
-        Request request = Request.parse(classLoader, interfaceDescription, requestStr);
-        TClientFactory<? extends TServiceClient> clientFactory = this.getClientFactory(request.getClientFactory());
-        return InvariantTaskGenerator.newInstance(clientFactory, request);
-    }
-
-    private <T extends TServiceClient> TClientFactory getClientFactory(TServiceClientFactory<T> serviceClientFactory) {
-        TProtocolFactory protocolFactory = new TCompactProtocol.Factory();
-        TTransportFactory transportFactory = new TTransportFactory(BenchmarkUtils.parseAddresses(this.address));
-        return new DefaultClientFactory(serviceClientFactory, protocolFactory, transportFactory);
-    }
-
-    private Pressure getPressure() {
-        if (this.quantity != null && this.duration != null) {
-            if (this.rampup == null) {
-                return new Fixed(this.quantity, this.duration);
-            } else {
-                return new Fixed(this.quantity, this.duration, this.rampup);
+        if (this.concurrency == null) {
+            if (this.throughput == null) {
+                throw new IllegalArgumentException("Invalid argument: concurrency is null, throughput is null");
             }
+            Pressure pressure = Pressure.parse(this.throughput, this.timelimit);
+            IntFunction<List<Runnable>> generator = this.getGenerator();
+            return PressureExecutor.throughput(generator, pressure::currentQuantity);
+        } else {
+            if (this.throughput != null) {
+                throw new IllegalArgumentException("Invalid argument: concurrency=" + this.concurrency + ", throughput=" + throughput);
+            }
+            Pressure pressure = Pressure.parse(this.concurrency, this.timelimit);
+            IntFunction<List<Runnable>> generator = this.getGenerator();
+            return PressureExecutor.concurrency(generator, pressure::currentQuantity);
         }
-        if (this.initialQuantity != null && this.finalQuantity != null && this.incrementPerStep != null && this.durationPerStep != null) {
-            return new Gradient(this.initialQuantity, this.finalQuantity, this.incrementPerStep, this.durationPerStep);
+    }
+
+    private IntFunction<List<Runnable>> getGenerator() {
+        ServiceClientInvocation invocation = new ServiceClientInvocation(this.conf, this.keepAlive);
+        List<String> arguments = this.conf.getArguments();
+        if (arguments.isEmpty()) {
+            return new InvariantTaskGenerator(invocation);
+        } else {
+            return new InvariantTaskGenerator(invocation, arguments.toArray(new String[arguments.size()]));
         }
-        if (this.quantities != null && !this.quantities.isEmpty() && this.durationPerStep != null) {
-            return new Custom(this.quantities.stream().mapToInt(Integer::parseInt).toArray(), this.durationPerStep);
-        }
-        throw new IllegalArgumentException("Invalid argument for init pressure");
     }
 
     public static void main(String... args) throws Exception {
         Main main = new Main();
         JCommander.newBuilder().addObject(main).build().parse(args);
         main.run();
+    }
+
+    private static class URLConverter implements IStringConverter<BenchmarkConf> {
+        @Override
+        public BenchmarkConf convert(String s) {
+            try {
+                return new BenchmarkConf(s);
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
+        }
     }
 }
