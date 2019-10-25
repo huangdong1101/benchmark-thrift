@@ -1,7 +1,7 @@
 package com.mamba.benchmark.common.util;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.util.TypeUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 
 public final class ReflectUtils {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     public static Class<?> findInnerClass(Class<?> clazz, String name) throws ClassNotFoundException {
         Class<?>[] innerClasses = clazz.getClasses();
@@ -52,43 +54,60 @@ public final class ReflectUtils {
         return arguments;
     }
 
-    public static <T> T cast(Object obj, Type type) {
-        if (obj == null) {
+    public static Object cast(String s, Type type) {
+        if (s == null) {
             return null;
         }
         if (type == String.class) {
-            return (T) obj.toString();
+            return s;
         }
         if (type == byte.class || type == Byte.class) {
-            return (T) TypeUtils.castToByte(obj);
+            return Byte.valueOf(s);
         }
         if (type == short.class || type == Short.class) {
-            return (T) TypeUtils.castToShort(obj);
+            return Short.valueOf(s);
         }
         if (type == int.class || type == Integer.class) {
-            return (T) TypeUtils.castToInt(obj);
+            return Integer.valueOf(s);
         }
         if (type == long.class || type == Long.class) {
-            return (T) TypeUtils.castToLong(obj);
+            return Long.valueOf(s);
         }
         if (type == float.class || type == Float.class) {
-            return (T) TypeUtils.castToFloat(obj);
+            return Float.valueOf(s);
         }
         if (type == double.class || type == Double.class) {
-            return (T) TypeUtils.castToDouble(obj);
+            return Double.valueOf(s);
         }
         if (type == char.class || type == Character.class) {
-            return (T) TypeUtils.castToChar(obj);
+            if (s.isEmpty()) {
+                return null;
+            }
+            if (s.length() == 1) {
+                return s.charAt(0);
+            }
+            String tmp = s.trim();
+            if (tmp.isEmpty()) {
+                return ' ';
+            }
+            if (tmp.length() == 1) {
+                return tmp.charAt(0);
+            }
+            throw new IllegalArgumentException("Invalid char: " + s);
         }
         if (type == boolean.class || type == Boolean.class) {
-            return (T) TypeUtils.castToBoolean(obj);
+            return Boolean.valueOf(s);
         }
         if (type == BigDecimal.class) {
-            return (T) TypeUtils.castToBigDecimal(obj);
+            return new BigDecimal(s);
         }
         if (type == BigInteger.class) {
-            return (T) TypeUtils.castToBigInteger(obj);
+            return new BigInteger(s);
         }
-        return JSON.parseObject(obj.toString(), type);
+        try {
+            return MAPPER.readValue(s, MAPPER.constructType(type));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("error data('" + type.getTypeName() + "') " + s + " : " + e.getMessage(), e);
+        }
     }
 }
