@@ -25,7 +25,7 @@
         <jcommander.version>1.78</jcommander.version>
 
         <slf4j.version>1.7.28</slf4j.version>
-        <log4j.version>2.12.1</log4j.version>
+        <log4j.version>2.15.0</log4j.version>
 
         <junit-jupiter.version>5.5.2</junit-jupiter.version>
 
