@@ -17,7 +17,7 @@
 
         <guava.version>28.1-jre</guava.version>
 
-        <jackson.version>2.10.0</jackson.version>
+        <jackson.version>2.12.7.1</jackson.version>
 
         <commons-pool2.version>2.7.0</commons-pool2.version>
         <commons-csv.version>1.7</commons-csv.version>
